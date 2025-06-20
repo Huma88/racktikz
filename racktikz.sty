@@ -1,0 +1,207 @@
+\ProvidesPackage{racktikz}[2025/06/18 Rack diagram macros]
+\RequirePackage{tikz}
+\usetikzlibrary{patterns,positioning}
+\usetikzlibrary{patterns.meta}
+\usepackage{xifthen}
+
+
+% Medidas
+\newcommand{\rackunitheight}{0.6} % cm por 1U
+\newcommand{\firstfloornumber}{1}
+\pgfmathsetmacro{\cellheight}{\rackunitheight/3}
+\newcommand{\rackwidth}{10}       % ancho total del rack
+\newcommand{\vigasep}{0.5}       % grosor de la viga lateral
+
+% Dibuja rack base
+\newcommand{\drawrack}[2]{% total units
+    \def\rackunits{#1}
+    \def\cover{#2}
+    \begin{tikzpicture}[x=1cm,y=1cm]
+
+    \pgfmathsetmacro{\rackheight}{\rackunits * \rackunitheight}
+
+    % Subdivisión en tercios de U y numeración
+    \foreach \i in {0,...,\numexpr\rackunits*3-1} {
+        \pgfmathsetmacro{\y}{\i * \cellheight}
+        \draw[gray!30] (0, \y) rectangle (\vigasep, \y + \cellheight);
+        \draw[gray!30] (\rackwidth-\vigasep, \y) rectangle (\rackwidth, \y + \cellheight);
+    }
+
+    % Numeración cada 1U (cada 3 tercios)
+    \foreach \u in {1,...,\rackunits} {
+        \pgfmathsetmacro{\y}{(\u) * \rackunitheight}
+      
+        % Marcas de 1U en vigas
+        \draw[black] (0, \y) -- ++(-0.1, 0); % izquierda
+        \draw[black] (\rackwidth, \y) -- ++(0.1, 0); % derecha
+
+        \pgfmathsetmacro{\fnm}{\u+\firstfloornumber-1}
+        \pgfmathtruncatemacro{\floornumber}{\fnm}
+        % Número
+        \node[anchor=east, font=\tiny] at (0, \y - 0.25) {\floornumber};
+        \node[anchor=west, font=\tiny] at (\rackwidth, \y - 0.25) {\floornumber};
+    }
+
+    %Marco del rack
+    \draw[black] (-1, -\rackunitheight) -- (-1, \rackheight + \rackunitheight);
+    \draw[black] (\rackwidth+1, -\rackunitheight) -- (\rackwidth+1, \rackheight + \rackunitheight);
+    % Dibujar marco superior si #2 es par (módulo 2 == 0)
+    \pgfmathparse{mod(\cover, 2) == 0 ? 0 : 1}
+    \ifthenelse{\pgfmathresult=1}{
+        \draw[black] (-1, \rackheight + \rackunitheight) -- (\rackwidth+1, \rackheight + \rackunitheight);
+    }{}
+
+    % Dibujar marco inferior si #2 > 1
+    \ifthenelse{\cover > 1}{
+        \draw[black] (-1, -\rackunitheight) -- (\rackwidth+1, -\rackunitheight);
+    }{}
+}
+
+
+% Fin del rack
+\newcommand{\closerack}{%
+    \end{tikzpicture}
+}
+
+% Switch: nombre, pos, tamaño en U, nº de puertos
+\newcommand{\switchnode}[4]{%
+    \def\name{#1}
+    \def\pos{#2}
+    \def\size{#3}
+    \def\ports{#4}
+    
+    \pgfmathsetmacro{\y}{((\pos - \firstfloornumber - \size)*\rackunitheight)+0.05}
+    \pgfmathsetmacro{\h}{(\size*\rackunitheight) - 0.05}
+    
+    \draw[fill=blue!50] (\vigasep, \y) rectangle (\rackwidth-\vigasep, \y+\h);
+    \node[anchor=west, text=white, font=\small] at (\vigasep, \y+\cellheight) {\name};
+
+    % Puertos
+    \pgfmathsetmacro{\perrow}{ceil(\ports/2)}
+    \foreach \i in {1,...,\ports} {
+        \pgfmathsetmacro{\row}{ifthenelse(\i > \perrow, 0, 1)}
+        \pgfmathsetmacro{\col}{mod(\i-1, \perrow)}
+        \pgfmathsetmacro{\px}{3 + 0.35*\col}
+        \pgfmathsetmacro{\py}{\y + 0.05 + 0.25*\row}
+        \draw[fill=white] (\px, \py) rectangle ++(0.25,0.25);
+        \node[font=\tiny] at (\px+0.125, \py+0.125) {\i};
+    }
+}
+
+% SAI: nombre, pos
+\newcommand{\sainode}[3]{%
+    \def\name{#1}
+    \def\pos{#2}
+    \def\size{#3}
+
+    \pgfmathsetmacro{\y}{((\pos - \firstfloornumber - \size)*\rackunitheight)+0.05}
+    \pgfmathsetmacro{\h}{(\size*\rackunitheight) - 0.05}
+    
+    % Rectángulo principal (SAI)
+    \draw[fill=black!60] (\vigasep, \y) rectangle (\rackwidth-\vigasep, \y+\h);
+    \node[anchor=west, text=white, font=\small] at (\vigasep, \y+\cellheight) {\name};
+    % Posición batería
+    \pgfmathsetmacro{\bx}{\rackwidth - 1.8}
+    \pgfmathsetmacro{\by}{\y + 0.15}
+    \pgfmathsetmacro{\bw}{0.7}
+    \pgfmathsetmacro{\bh}{0.3}
+
+    % Cuerpo de batería
+    \draw[fill=gray!20] (\bx,\by) rectangle ++(\bw,\bh);
+    
+    % Texto "80%" en verde – DESPUÉS del cuerpo de la batería para que quede encima
+    \node[align=center, text=green!70!black, font=\scriptsize] at (\bx+0.35,\by+.15) {80\%};
+
+    % Terminal de batería
+    \draw[fill=gray!40] (\bx + \bw, \y+0.22) rectangle ++(0.1, 0.15);
+}
+
+
+% Server: nombre, posy, units, posx, width
+\newcommand{\servernode}[5]{%
+    \def\name{#1}
+    \def\pos{#2}
+    \def\size{#3}
+    \def\posx{#4}
+    \def\width{#5}
+
+    \pgfmathsetmacro{\maxwidth}{\rackwidth - \vigasep}
+    \pgfmathparse{min(\width, \maxwidth)}
+    \let\width\pgfmathresult
+
+    \pgfmathsetmacro{\y}{((\pos - \firstfloornumber - \size)*\rackunitheight)+0.05}
+    \pgfmathsetmacro{\h}{(\size*\rackunitheight) - 0.05}
+  
+    % Rectángulo principal
+    \fill[pattern={Lines[angle=45, distance=8pt]}, pattern color=gray!60] 
+    (\vigasep + \posx, \y) rectangle (\posx + \width, \y+\h);
+    \fill[pattern={Lines[angle=-45, distance=8pt]}, pattern color=gray!60] 
+    (\vigasep + \posx, \y) rectangle (\posx + \width, \y+\h);
+    
+    % Contorno opcional
+    \draw[black!60] 
+        (\vigasep + \posx, \y) rectangle (\posx + \width, \y+\h);
+    \node[anchor=west, text=black, font=\small] at (\vigasep, \y+\cellheight) {\name};
+}
+
+% Fan: posy, units, posx, width
+\newcommand{\ventilationmodule}[4]{%
+    \def\pos{#1}
+    \def\size{#2}
+    \def\posx{#3}
+    \def\width{#4}
+    
+    \pgfmathsetmacro{\y}{((\pos - \firstfloornumber - \size)*\rackunitheight)+0.05}
+    \pgfmathsetmacro{\h}{(\size*\rackunitheight) - 0.05}
+    
+    \pgfmathsetmacro{\maxwidth}{\rackwidth - \vigasep *2}
+    \pgfmathparse{min(\width, \maxwidth)}
+    \let\width\pgfmathresult
+    
+    \pgfmathsetmacro{\xstart}{\vigasep + \posx}
+    \pgfmathsetmacro{\xend}{\xstart + \width}
+    \pgfmathsetmacro{\w}{\xend - \xstart}
+    \pgfmathsetmacro{\wavecount}{3}
+    \pgfmathsetmacro{\wavegap}{(\xend - \xstart)/(\wavecount + 1)}
+    \pgfmathsetmacro{\arrowcount}{3}
+    \pgfmathsetmacro{\arrowgap}{(\xend - \xstart)/(\arrowcount + 1)}
+    \pgfmathsetmacro{\amplitude}{0.08} % altura de la ola
+    \pgfmathsetmacro{\waveheight}{\h*.95}
+    \pgfmathsetmacro{\wavestart}{\y + \h*0.1}
+    \pgfmathsetmacro{\waveend}{(\wavestart + \h*0.8)}
+  
+    % Rectángulo base
+    \draw[fill=gray!15] (\xstart, \y) rectangle (\xend, \y + \h);
+    
+    % Dibujar 3 ondas senoidales verticales
+    %\foreach \i in {1,...,3} {
+    %    \pgfmathsetmacro{\xwave}{\xstart + \i*\wavegap}
+    %    \draw[domain=\wavestart:\waveend, smooth, variable=\yy, samples=100, color=blue!60!black]
+    %        plot ({\xwave + \amplitude*sin(deg(1+(\yy - \y) * 9 / \waveheight))}, {\yy});
+    %}
+
+    % Dibujar 2 flechas de ventilación.
+    \foreach \i in {1,...,3} {
+        \pgfmathsetmacro{\xarrow}{\xstart + \i*\arrowgap}
+        \draw[thick, blue!70!black] 
+        ({\xarrow-\amplitude}, \waveend) --
+        ({\xarrow+\amplitude}, \waveend);
+        \draw[->, thick, blue!70!black] 
+        ({\xarrow}, \waveend) --
+        ({\xarrow}, \wavestart);
+        
+    }
+    
+    % Etiqueta opcional
+    \node[anchor=west, text=black!50, font=\tiny] at (\xstart + 0.1, \y + 0.1) {VENT};
+}
+
+% Bandeja: pos, tamaño
+\newcommand{\traynode}[2]{%
+    \def\pos{#1}
+    \def\size{#2}
+    \pgfmathsetmacro{\y}{((\pos - \firstfloornumber - \size)*\rackunitheight)+0.05}
+    \pgfmathsetmacro{\h}{(\size*\rackunitheight)}
+    \draw[pattern=north east lines, pattern color=gray!60] (\vigasep, \y) rectangle (\rackwidth-\vigasep, \y+\h);
+}
+
