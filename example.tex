@@ -1,0 +1,87 @@
+\documentclass{article}
+\usepackage{racktikz}
+
+\begin{document}
+
+\begin{figure}
+    \centering
+    \caption{top}
+    \label{fig:rack1}
+
+    \def\rackwidth{8} % Rack width.
+    \def\firstfloornumber{22} % first unit numbered.
+    % Draw start of rack and lateral guides.
+    % {#1} Number of units
+    % {#2} Cover on binary:
+    %% 0 - 00 None.
+    %% 1 - 01 Top.
+    %% 2 - 10 Bottom.
+    %% 3 - 11 Both.
+    \drawrack{21}{1} 
+        % Ventilation module.
+        % {#1} Name.
+        % {#2} Rack position.
+        % {#3} Heigth in units.
+        % {#4} Width, max between value and rack width.
+        % {#5} Position x.
+        % {#6}Flow direction:
+        %% -1 down.
+        %% 1 up.
+        \ventilationmodule{$(4: 2x24 80\pm+10 cfm)$}{44}{1}{0}{99}{1}
+        % SAI module.
+        % {#1} Name.
+        % {#2} Rack position.
+        % {#3} Heigth in units.
+        \sainode{UPS}{40}{2}
+        % Tray module.
+        % {#1} Rack position.
+        % {#2} Size in units.
+        \traynode{38}{0.333}
+        % Ventilation module.
+        % {#1} Name.
+        % {#2} Rack position.
+        % {#3} Heigth in units.
+        % {#4} Position x.
+        % {#5} Width, max between value and rack width.
+        \servernode{Server 1}{37}{4}{0}{99}
+        % Switch module.
+        % {#1} Name.
+        % {#2} Rack position.
+        % {#3} Heigth in units.
+        % {#4} Width, max between value and rack width.
+        \switchnode{Switch A}{32}{1}{24}
+        \traynode{31}{1}
+        \servernode{Server 2}{30}{4}{0}{99}
+        \servernode{Server 3}{26}{4}{0}{99}
+    \closerack
+\end{figure}
+
+\begin{figure}
+    \centering
+    \caption{Middle}
+    \label{fig:rack2}
+
+    \def\rackwidth{8} %rack width
+    \def\firstfloornumber{18}
+    \drawrack{4}{0}
+        \servernode{Server 4}{22}{4}{0}{99}
+    \closerack
+\end{figure}
+
+\begin{figure}
+    \centering
+    \caption{Bottom}
+    \label{fig:rack2}
+
+    \def\rackwidth{8} %rack width
+    \def\firstfloornumber{1}
+    \drawrack{17}{2}
+       
+        \servernode{Server 5}{18}{4}{0}{99}
+
+        \servernode{Server 6}{3.333}{3.333}{0}{4}
+    \closerack
+\end{figure}
+
+
+\end{document}
